@@ -184,7 +184,8 @@ class Compositor(Form, Base):
         qApp.processEvents()
     
     def setPath(self):
-        filename = QFileDialog.getExistingDirectory(self, title, self.lastPath,
+        dialog = QFileDialog(self)
+        filename = dialog.getExistingDirectory(self, title, self.lastPath,
                                                     QFileDialog.ShowDirsOnly)
         if filename:
             self.lastPath = filename
