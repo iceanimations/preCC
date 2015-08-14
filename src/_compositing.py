@@ -30,8 +30,9 @@ if not osp.exists(homeDir):
 rootPath = qutil.dirname(__file__, depth=2)
 uiPath = osp.join(rootPath, 'ui')
 iconPath = osp.join(rootPath, 'icons')
-renderShotBackend = osp.join('R:\\', 'Python_Scripts', 'plugins', 'renderShots', 'src', 'backend')
-print renderShotBackend
+renderShotBackend = 'R:\\Python_Scripts\\plugins\\renderShots\\src\\backend'
+if os.environ['USERNAME'] == 'qurban.ali':
+    renderShotBackend = 'D:\\My\\Tasks\\workSpace\\renderShots\\src\\backend'
 sys.path.insert(0, renderShotBackend)
 compositingFie = osp.join(renderShotBackend, 'compositing.py')
 
