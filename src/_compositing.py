@@ -30,7 +30,7 @@ if not osp.exists(homeDir):
 rootPath = qutil.dirname(__file__, depth=2)
 uiPath = osp.join(rootPath, 'ui')
 iconPath = osp.join(rootPath, 'icons')
-renderShotBackend = osp.join(qutil.dirname(__file__), 'renderShots', 'src', 'backend')
+renderShotBackend = osp.join('R:', 'Python_Scripts', 'plugins', 'renderShots', 'src', 'backend')
 sys.path.insert(0, renderShotBackend)
 compositingFie = osp.join(renderShotBackend, 'compositing.py')
 
@@ -185,7 +185,7 @@ class Compositor(Form, Base):
     
     def setPath(self):
         filename = QFileDialog.getExistingDirectory(self, title, self.lastPath,
-                                                    QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+                                                    QFileDialog. | QFileDialog.ShowDirsOnly)
         if filename:
             self.lastPath = filename
             self.shotsPathBox.setText(filename)
