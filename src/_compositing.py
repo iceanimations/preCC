@@ -19,7 +19,7 @@ import shutil
 import appUsageApp
 import subprocess
 import sys
-import os
+import pprint
 
 title = 'PreCC'
 
@@ -82,7 +82,7 @@ class Compositor(Form, Base):
                 shots = self.shotsBox.getItems()
             if shots:
                 self.progressBar.show()
-                self.copyRenders(shots)
+                frames = self.copyRenders(shots)
                 self.progressBar.setValue(0)
                 qApp.processEvents()
                 
@@ -106,12 +106,12 @@ class Compositor(Form, Base):
                 cm.collageDir = osp.join(homeDir, 'collage')
                 if not osp.exists(cm.collageDir):
                     os.mkdir(cm.collageDir)
-                
+
                 cMaker = cm.CollageMaker()
                 numShots = len(shots)
                 for i, shot in enumerate(shots):
                     self.setSubStatus('Creating %s (%s of %s)'%(shot, i+1, numShots))
-                    cMaker.makeShot(shot, size=str(self.sizeBox.value())+'%')
+                    cMaker.makeShot(shot, size=str(self.sizeBox.value())+'%', text=frames[shot])
                     self.progressBar.setValue(i+1)
                     qApp.processEvents()
                 collagePath = cMaker.make().replace('\\', '/')
@@ -129,7 +129,9 @@ class Compositor(Form, Base):
         shotsDir = self.getShotsPath()
         numShots = len(shots)
         self.progressBar.setMaximum(numShots)
+        frames = {}
         for i, shot in enumerate(shots):
+            numFrames = 0
             self.setStatus('Scaning %s (%s of %s)'%(shot, i+1, numShots))
             shotDirLocal = osp.join(homeDir, shot)
             if not osp.exists(shotDirLocal):
@@ -152,7 +154,15 @@ class Compositor(Form, Base):
                         aovDir = osp.join(layerDir, aov)
                         renders = os.listdir(aovDir)
                         if renders:
-                            for phile in self.getGoodFiles(renders):
+                            goodRenders = list(self.getGoodFiles(renders))
+                            if len(goodRenders) > 1:
+                                frameRange = [int(re.search('\.\d+\.', phile).group()[1:-1]) for phile in goodRenders]
+                                minFrame = min(frameRange); maxFrame = max(frameRange)
+                                nf = maxFrame - minFrame
+                                if nf > numFrames:
+                                    numFrames = nf
+                                    frames[shot] = frameRange
+                            for phile in goodRenders:
                                 shutil.copy(osp.join(aovDir, phile), aovDirLocal)
                             num = len(os.listdir(aovDirLocal))
                             if num < 3:
@@ -165,6 +175,7 @@ class Compositor(Form, Base):
                 qApp.processEvents()
         self.setStatus('')
         self.setSubStatus('')
+        return frames
     def getGoodFiles(self, renders):
         mid = int(len(renders)/2)
         if len(renders) % 2 != 0:
