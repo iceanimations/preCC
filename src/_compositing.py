@@ -20,6 +20,8 @@ import appUsageApp
 import subprocess
 import sys
 import pprint
+import iutil
+reload(iutil)
 
 title = 'PreCC'
 
@@ -74,8 +76,9 @@ class Compositor(Form, Base):
         try:
             for directory in os.listdir(homeDir):
                 path = osp.join(homeDir, directory)
+                print path
                 if osp.isdir(path):
-                    shutil.rmtree(path)
+                    shutil.rmtree(path, onerror=iutil.onerror)
         
             shots = self.shotsBox.getSelectedItems()
             if not shots:
@@ -106,7 +109,7 @@ class Compositor(Form, Base):
                 cm.collageDir = osp.join(homeDir, 'collage')
                 if not osp.exists(cm.collageDir):
                     os.mkdir(cm.collageDir)
-
+    
                 cMaker = cm.CollageMaker()
                 numShots = len(shots)
                 for i, shot in enumerate(shots):
@@ -119,7 +122,7 @@ class Compositor(Form, Base):
         except Exception as ex:
             self.showMessage(msg=str(ex),
                              icon=QMessageBox.Critical)
-            
+             
         finally:
             self.progressBar.hide()
             self.setStatus('')
