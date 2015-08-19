@@ -5,6 +5,7 @@ Created on Aug 12, 2015
 '''
 from site import addsitedir as asd
 asd(r'R:\Pipe_Repo\Users\Qurban\utilities')
+asd(r"R:\Pipe_Repo\Projects\TACTIC")
 from PyQt4 import uic
 from PyQt4.QtGui import QMessageBox, QFileDialog, qApp
 import os.path as osp
