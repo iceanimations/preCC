@@ -77,7 +77,6 @@ class Compositor(Form, Base):
         try:
             for directory in os.listdir(homeDir):
                 path = osp.join(homeDir, directory)
-                print path
                 if osp.isdir(path):
                     shutil.rmtree(path, onerror=iutil.onerror)
         
