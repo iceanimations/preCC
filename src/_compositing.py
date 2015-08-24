@@ -109,7 +109,14 @@ class Compositor(Form, Base):
                 cm.collageDir = osp.join(homeDir, 'collage')
                 if not osp.exists(cm.collageDir):
                     os.mkdir(cm.collageDir)
-    
+
+                with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
+                    errors = eval(f.read())
+                    if errors:
+                        self.showMessage(msg='Errors occurred while creating and rendering comps',
+                                         icon=QMessageBox.Critical,
+                                         details=qutil.dictionaryToDetails(errors))
+
                 cMaker = cm.CollageMaker()
                 numShots = len(shots)
                 for i, shot in enumerate(shots):
