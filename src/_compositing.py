@@ -74,66 +74,67 @@ class Compositor(Form, Base):
         appUsageApp.updateDatabase('PreCC')
         
     def start(self):
-        try:
-            for directory in os.listdir(homeDir):
-                path = osp.join(homeDir, directory)
-                if osp.isdir(path):
-                    shutil.rmtree(path, onerror=iutil.onerror)
-        
-            shots = self.shotsBox.getSelectedItems()
-            if not shots:
-                shots = self.shotsBox.getItems()
-            if shots:
-                self.progressBar.show()
-                frames = self.copyRenders(shots)
-                self.progressBar.setValue(0)
-                qApp.processEvents()
-                
-                self.setStatus('Creating and rendering comps...')
-                compDir = osp.join(homeDir, 'comps')
-                if not osp.exists(compDir):
-                    os.mkdir(compDir)
-                with open(osp.join(compositingInfo, 'info.txt'), 'w') as f:
-                    f.write(str([homeDir] + shots))
-                
-                # create the comps and render them
-                os.chdir(nukePath)
-                subprocess.call('python '+ compositingFie + ' '+ homeDir + ' '+' '.join(shots), shell=True)
-                
-                # create collage
-                self.setStatus('Creating collage')
-                import collageMaker as cm
-                reload(cm)
-                cm.homeDir = homeDir
-                cm.compRenderDir = osp.join(homeDir, 'comps', 'renders')
-                cm.collageDir = osp.join(homeDir, 'collage')
-                if not osp.exists(cm.collageDir):
-                    os.mkdir(cm.collageDir)
+#         try:
+        for directory in os.listdir(homeDir):
+            path = osp.join(homeDir, directory)
+            if osp.isdir(path):
+                shutil.rmtree(path, onerror=iutil.onerror)
+    
+        shots = self.shotsBox.getSelectedItems()
+        if not shots:
+            shots = self.shotsBox.getItems()
+        if shots:
+            self.progressBar.show()
+            frames = self.copyRenders(shots)
+            self.progressBar.setValue(0)
+            qApp.processEvents()
+            
+            self.setStatus('Creating and rendering comps...')
+            compDir = osp.join(homeDir, 'comps')
+            if not osp.exists(compDir):
+                os.mkdir(compDir)
+            with open(osp.join(compositingInfo, 'info.txt'), 'w') as f:
+                f.write(str([homeDir] + shots))
+            
+            # create the comps and render them
+            os.chdir(nukePath)
+            subprocess.call('python '+ compositingFie + ' '+ homeDir + ' '+' '.join(shots), shell=True)
+            
+            # create collage
+            self.setStatus('Creating collage')
+            import collageMaker as cm
+            reload(cm)
+            cm.homeDir = homeDir
+            cm.compRenderDir = osp.join(homeDir, 'comps', 'renders')
+            cm.collageDir = osp.join(homeDir, 'collage')
+            if not osp.exists(cm.collageDir):
+                os.mkdir(cm.collageDir)
 
-                with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
-                    errors = eval(f.read())
-                    if errors:
-                        self.showMessage(msg='Errors occurred while creating and rendering comps',
-                                         icon=QMessageBox.Critical,
-                                         details=qutil.dictionaryToDetails(errors))
+            with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
+                errors = eval(f.read())
+                if errors:
+                    self.showMessage(msg='Errors occurred while creating and rendering comps',
+                                     icon=QMessageBox.Critical,
+                                     details=qutil.dictionaryToDetails(errors))
 
-                cMaker = cm.CollageMaker()
-                numShots = len(shots)
-                for i, shot in enumerate(shots):
-                    self.setSubStatus('Creating %s (%s of %s)'%(shot, i+1, numShots))
+            cMaker = cm.CollageMaker()
+            numShots = len(shots)
+            for i, shot in enumerate(shots):
+                self.setSubStatus('Creating %s (%s of %s)'%(shot, i+1, numShots))
+                if frames.has_key(shot):
                     cMaker.makeShot(shot, size=str(self.sizeBox.value())+'%', text=frames[shot])
-                    self.progressBar.setValue(i+1)
-                    qApp.processEvents()
-                collagePath = cMaker.make().replace('\\', '/')
-                self.showMessage(msg='<a href=\"%s\">%s</a>'%(collagePath, collagePath))
-        except Exception as ex:
-            self.showMessage(msg=str(ex),
-                             icon=QMessageBox.Critical)
-             
-        finally:
-            self.progressBar.hide()
-            self.setStatus('')
-            self.setSubStatus('')
+                self.progressBar.setValue(i+1)
+                qApp.processEvents()
+            collagePath = cMaker.make().replace('\\', '/')
+            self.showMessage(msg='<a href=\"%s\">%s</a>'%(collagePath, collagePath))
+#         except Exception as ex:
+#             self.showMessage(msg=str(ex),
+#                              icon=QMessageBox.Critical)
+#              
+#         finally:
+#             self.progressBar.hide()
+#             self.setStatus('')
+#             self.setSubStatus('')
         
     def copyRenders(self, shots):
         shotsDir = self.getShotsPath()
