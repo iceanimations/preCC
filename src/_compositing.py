@@ -46,6 +46,9 @@ if not osp.exists(nukePath):
 compositingInfo = osp.join(osp.expanduser('~'), 'compositing')
 if not osp.exists(compositingInfo):
     os.mkdir(compositingInfo)
+    
+def executeCommand(command):
+    pass
 
 Form, Base = uic.loadUiType(osp.join(uiPath, 'main.ui'))
 class Compositor(Form, Base):
@@ -79,13 +82,16 @@ class Compositor(Form, Base):
                 path = osp.join(homeDir, directory)
                 if osp.isdir(path):
                     shutil.rmtree(path, onerror=iutil.onerror)
-        
+
             shots = self.shotsBox.getSelectedItems()
             if not shots:
                 shots = self.shotsBox.getItems()
             if shots:
                 self.progressBar.show()
-                frames = self.copyRenders(shots)
+                if self.isMoveFile():
+                    pass
+                else:
+                    frames = self.copyRenders(shots)
                 self.progressBar.setValue(0)
                 qApp.processEvents()
                 
@@ -94,52 +100,128 @@ class Compositor(Form, Base):
                 if not osp.exists(compDir):
                     os.mkdir(compDir)
                 with open(osp.join(compositingInfo, 'info.txt'), 'w') as f:
-                    f.write(str([homeDir] + shots))
+                    f.write(str([self.getShotsPath(msg=False), homeDir] + shots))
                 
                 # create the comps and render them
                 os.chdir(nukePath)
-                subprocess.call('python '+ compositingFie + ' '+ homeDir + ' '+' '.join(shots), shell=True)
-                
+                subprocess.call(osp.join(nukePath, 'python') + ' ' + compositingFie)
                 # create collage
-                self.setStatus('Creating collage')
-                import collageMaker as cm
-                reload(cm)
-                cm.homeDir = homeDir
-                cm.compRenderDir = osp.join(homeDir, 'comps', 'renders')
-                cm.collageDir = osp.join(homeDir, 'collage')
-                if not osp.exists(cm.collageDir):
-                    os.mkdir(cm.collageDir)
-    
-                with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
-                    errors = eval(f.read())
-                    if errors:
-                        self.showMessage(msg='Errors occurred while creating and rendering comps',
-                                         icon=QMessageBox.Critical,
-                                         details=qutil.dictionaryToDetails(errors))
-    
-                cMaker = cm.CollageMaker()
-                numShots = len(shots)
-                for i, shot in enumerate(shots):
-                    self.setSubStatus('Creating %s (%s of %s)'%(shot, i+1, numShots))
-                    if frames.has_key(shot):
-                        cMaker.makeShot(shot, size=str(self.sizeBox.value())+'%', text=frames[shot])
-                    self.progressBar.setValue(i+1)
-                    qApp.processEvents()
-                collagePath = cMaker.make().replace('\\', '/')
-                self.showMessage(msg='<a href=\"%s\">%s</a>'%(collagePath, collagePath))
+                self.setStatus('Adding shot and frame numbers to the renders')
+                renderPath = osp.join(compDir, 'renders')
+                #TODO: add black images for missing frames
+                self.addShotNumbers(renderPath, shots)
+                if self.isMoveFile():
+                    allRendersPath = osp.join(osp.join(renderPath, 'all'))
+                    if not osp.exists(allRendersPath):
+                        os.mkdir(allRendersPath)
+                    movPath = self.createMovFile(allRendersPath)
+                    if osp.exists(movPath):
+                        movPath = movPath.replace('\\', '/')
+                        self.showMessage(msg='<a href=\"%s\">%s</a>'%(movPath, movPath))
+                    else:
+                        self.showMessage(msg='Could not create .mov file', icon=QMessageBox.Critical)
+                else:
+                    self.setStatus('Creating collage')
+                    import collageMaker as cm
+                    reload(cm)
+                    cm.homeDir = homeDir
+                    cm.compRenderDir = osp.join(homeDir, 'comps', 'renders')
+                    cm.collageDir = osp.join(homeDir, 'collage')
+                    if not osp.exists(cm.collageDir):
+                        os.mkdir(cm.collageDir)
+        
+                    with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
+                        errors = eval(f.read())
+                        if errors:
+                            self.showMessage(msg='Errors occurred while creating and rendering comps',
+                                             icon=QMessageBox.Critical,
+                                             details=qutil.dictionaryToDetails(errors))
+        
+                    cMaker = cm.CollageMaker()
+                    numShots = len(shots)
+                    for i, shot in enumerate(shots):
+                        self.setSubStatus('Creating %s (%s of %s)'%(shot, i+1, numShots))
+                        if frames.has_key(shot):
+                            cMaker.makeShot(shot, size=str(self.sizeBox.value())+'%', text=frames[shot])
+                        self.progressBar.setValue(i+1)
+                        qApp.processEvents()
+                    collagePath = cMaker.make().replace('\\', '/')
+                    self.showMessage(msg='<a href=\"%s\">%s</a>'%(collagePath, collagePath))
         except Exception as ex:
             self.showMessage(msg=str(ex),
                              icon=QMessageBox.Critical)
-              
+
         finally:
             self.progressBar.hide()
             self.setStatus('')
             self.setSubStatus('')
+            
+    def addShotNumbers(self, renderPath, shots):
+        shotLen = len(shots)
+        for i, shot in enumerate(shots):
+            self.setSubStatus('Adding to %s (%s of %s)'%(shot, i+1, shotLen))
+            shotPath = osp.join(renderPath, shot)
+            if not osp.exists(shotPath): continue
+            try: files = os.listdir(shotPath)
+            except: continue
+            self.progressBar.setValue(0)
+            self.progressBar.setMaximum(len(files))
+            for j, ph in enumerate(files):
+                try: sh, frame, _ = ph.split('.')
+                except: continue
+                filePath = osp.normpath(osp.join(shotPath, ph))
+                text = sh + '[' + frame + ']'
+                command = 'R:\\Pipe_Repo\\Users\\Qurban\\applications\\ImageMagick\\convert.exe %s -pointsize 30 -draw "text 25,60 %s" -channel RGBA -fill darkred -stroke yellow -draw "text 20,55 %s" %s'%(filePath, text, text, filePath)
+                subprocess.call(command, shell=True)
+                self.progressBar.setValue(j+1)
+                qApp.processEvents()
+        self.setStatus('')
+        self.setSubStatus('')
+        self.progressBar.setValue(0)
+                
+
+    def isMoveFile(self):
+        return self.createMovButton.isChecked()
+    
+    def createMovFile(self, allRendersPath):
+        rendersPath = osp.dirname(allRendersPath)
+        shots = os.listdir(rendersPath)
+        shots.remove('all')
+        seqName = osp.basename(self.getShotsPath())
+        self.setStatus('Preparing to create .mov file')
+        ln = len(shots)
+        self.progressBar.setMaximum(ln)
+        self.progressBar.setValue(0)
+        for i, shot in enumerate(shots):
+            self.setSubStatus('Processing %s (%s of %s)'%(shot, i+1, ln))
+            shotPath = osp.join(rendersPath, shot)
+            files = os.listdir(shotPath)
+            for ph in files:
+                shutil.copy(osp.join(shotPath, ph), allRendersPath)
+                os.rename(osp.join(allRendersPath, ph), osp.join(allRendersPath, re.sub('SH\d+\.', seqName+'.', ph)))
+            self.progressBar.setValue(i+1)
+            qApp.processEvents()
+        self.progressBar.setValue(0)
+        files = sorted(os.listdir(allRendersPath))
+        ln = len(files)
+        for i, ph in enumerate(files):
+            phNewName = re.sub('\.\d+\.', '.'+ str(i).zfill(5) +'.', ph)
+            self.setSubStatus('Renaming file: %s -> %s (%s of %s)'%(ph, phNewName, i+1, ln))
+            os.rename(osp.join(allRendersPath, ph), osp.join(allRendersPath, phNewName))
+        movName = seqName+'.mov'
+        movPath = osp.join(allRendersPath, movName)
+        tempPath = osp.join(allRendersPath, seqName)
+        self.setSubStatus('Creating %s'%osp.basename(movPath))
+        subprocess.call("R:\\Pipe_Repo\\Users\\Qurban\\applications\\ffmpeg\\bin\\ffmpeg.exe -i "+ tempPath + ".%05d.jpg -c:v libx264 -r 30 -pix_fmt yuv420p "+ movPath)
+        self.setStatus('')
+        self.setSubStatus('')
+        return movPath
         
     def copyRenders(self, shots):
         shotsDir = self.getShotsPath()
         numShots = len(shots)
         self.progressBar.setMaximum(numShots)
+        self.progressBar.setValue(0)
         frames = {}
         for i, shot in enumerate(shots):
             numFrames = 0
@@ -166,6 +248,8 @@ class Compositor(Form, Base):
                         renders = os.listdir(aovDir)
                         if renders:
                             goodRenders = list(self.getGoodFiles(renders))
+                            if self.isMoveFile():
+                                goodRenders = renders
                             if len(goodRenders) > 1:
                                 frameRange = [int(re.search('\.\d+\.', phile).group()[1:-1]) for phile in goodRenders]
                                 minFrame = min(frameRange); maxFrame = max(frameRange)
@@ -182,8 +266,8 @@ class Compositor(Form, Base):
                                 frameInt = int(frame)
                                 for j in range(frameInt+1, frameInt+(4-num)):
                                     shutil.copyfile(osp.join(aovDirLocal, phile), osp.join(aovDirLocal, re.sub('\.\d+\.', '.'+ str(j).zfill(frameLength) +'.', phile)))
-                self.progressBar.setValue(i+1)
-                qApp.processEvents()
+            self.progressBar.setValue(i+1)
+            qApp.processEvents()
         self.setStatus('')
         self.setSubStatus('')
         return frames
@@ -209,7 +293,7 @@ class Compositor(Form, Base):
     
     def setPath(self):
         filename = QFileDialog.getExistingDirectory(self, title, self.lastPath,
-                                                    QFileDialog.ShowDirsOnly)
+                                                    QFileDialog.ShowDirsOnly | QFileDialog.DontUseNativeDialog)
         if filename:
             self.lastPath = filename
             self.shotsPathBox.setText(filename)
@@ -223,7 +307,7 @@ class Compositor(Form, Base):
             self.showMessage(msg='The system could not find the path specified',
                              icon=QMessageBox.Information)
             path = ''
-        return path
+        return osp.normpath(path) if path else path
     
     def populateShots(self):
         path = self.getShotsPath(msg=False)
