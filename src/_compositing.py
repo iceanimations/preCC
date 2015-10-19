@@ -141,7 +141,7 @@ class Compositor(Form, Base):
                         newName = osp.join(shotPath, files[0].split('.')[0] +'.'+ str(j).zfill(5) + '.jpg')
                         os.rename(bip, newName)
                         if imgSize != (1920, 1080):
-                            iutil.resizeImage(newName, str(imgSize[0]) +'x'+ imgSize[1])
+                            iutil.resizeImage(newName, str(str(imgSize[0])) +'x'+ str(imgSize[1]))
                 self.setStatus('Adding shot and frame numbers to the renders')
                 self.addShotNumbers(renderPath, shots)
                 if self.isMoveFile():
