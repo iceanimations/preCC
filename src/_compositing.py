@@ -94,7 +94,7 @@ class Compositor(Form, Base):
                     frames = self.copyRenders(shots)
                 self.progressBar.setValue(0)
                 qApp.processEvents()
-                
+
                 self.setStatus('Creating and rendering comps')
                 compDir = osp.join(homeDir, 'comps')
                 if not osp.exists(compDir):
@@ -202,7 +202,9 @@ class Compositor(Form, Base):
                 except: continue
                 filePath = osp.normpath(osp.join(shotPath, ph))
                 text = sh + '[' + frame + ']'
-                command = 'R:\\Pipe_Repo\\Users\\Qurban\\applications\\ImageMagick\\convert.exe'
+                command = "\"C:\\Program Files\\ImageMagick-6.9.1-Q8\\convert.exe\""
+                if not osp.exists(command):
+                    command = 'R:\\Pipe_Repo\\Users\\Qurban\\applications\\ImageMagick\\convert.exe'
                 command += ' %s -pointsize 30 -channel RGBA -fill black -stroke white -draw "text 20,55 %s" %s'%(filePath, text, filePath)
                 subprocess.call(command, shell=True)
                 self.progressBar.setValue(j+1)
