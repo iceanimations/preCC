@@ -95,7 +95,7 @@ class Compositor(Form, Base):
                 self.progressBar.setValue(0)
                 qApp.processEvents()
                 
-                self.setStatus('Creating and rendering comps...')
+                self.setStatus('Creating and rendering comps')
                 compDir = osp.join(homeDir, 'comps')
                 if not osp.exists(compDir):
                     os.mkdir(compDir)
@@ -105,10 +105,44 @@ class Compositor(Form, Base):
                 # create the comps and render them
                 os.chdir(nukePath)
                 subprocess.call(osp.join(nukePath, 'python') + ' ' + compositingFie)
-                # create collage
-                self.setStatus('Adding shot and frame numbers to the renders')
+
                 renderPath = osp.join(compDir, 'renders')
-                #TODO: add black images for missing frames
+                
+                with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
+                    errors = eval(f.read())
+                    if errors:
+                        btn = self.showMessage(msg='Errors occurred while creating and rendering comps',
+                                               ques='Do you want to continue?',
+                                               icon=QMessageBox.Critical,
+                                               details=qutil.dictionaryToDetails(errors),
+                                               btns=QMessageBox.Yes|QMessageBox.No)
+                        if btn == QMessageBox.No:
+                            return
+                # add black frames for missing frames
+                self.setStatus('Finding missing frames')
+                for i, shot in enumerate(shots):
+                    self.setSubStatus('Finding for %s (%s of %s)'%(shot, i+1, len(shots)))
+                    shotPath = osp.join(renderPath, shot)
+                    if not osp.exists(shotPath): continue
+                    files = os.listdir(shotPath)
+                    if not files: continue
+                    fn = set([int(x.split('.')[1]) for x in files]) # frame numbers
+                    mf = list(set(range(min(fn), max(fn) + 1)).difference(fn)) # missing frames
+                    if not mf: continue
+                    bip = osp.join(shotPath, 'black.jpg')
+                    imgSize = None
+                    for ph in files:
+                        imgSize = iutil.get_image_size(osp.join(shotPath, ph))
+                        if not imgSize: continue
+                        else: break
+                    if not imgSize: continue
+                    for j in mf:
+                        shutil.copy(r"R:\Pipe_Repo\Users\Qurban\extras\black.jpg", shotPath)
+                        newName = osp.join(shotPath, files[0].split('.')[0] +'.'+ str(j).zfill(5) + '.jpg')
+                        os.rename(bip, newName)
+                        if imgSize != (1920, 1080):
+                            iutil.resizeImage(newName, str(imgSize[0]) +'x'+ imgSize[1])
+                self.setStatus('Adding shot and frame numbers to the renders')
                 self.addShotNumbers(renderPath, shots)
                 if self.isMoveFile():
                     allRendersPath = osp.join(osp.join(renderPath, 'all'))
@@ -129,13 +163,6 @@ class Compositor(Form, Base):
                     cm.collageDir = osp.join(homeDir, 'collage')
                     if not osp.exists(cm.collageDir):
                         os.mkdir(cm.collageDir)
-        
-                    with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
-                        errors = eval(f.read())
-                        if errors:
-                            self.showMessage(msg='Errors occurred while creating and rendering comps',
-                                             icon=QMessageBox.Critical,
-                                             details=qutil.dictionaryToDetails(errors))
         
                     cMaker = cm.CollageMaker()
                     numShots = len(shots)
@@ -171,7 +198,8 @@ class Compositor(Form, Base):
                 except: continue
                 filePath = osp.normpath(osp.join(shotPath, ph))
                 text = sh + '[' + frame + ']'
-                command = 'R:\\Pipe_Repo\\Users\\Qurban\\applications\\ImageMagick\\convert.exe %s -pointsize 30 -draw "text 25,60 %s" -channel RGBA -fill darkred -stroke yellow -draw "text 20,55 %s" %s'%(filePath, text, text, filePath)
+                command = 'R:\\Pipe_Repo\\Users\\Qurban\\applications\\ImageMagick\\convert.exe'
+                command += ' %s -pointsize 30 -draw "text 25,60 %s" -channel RGBA -fill darkred -stroke yellow -draw "text 20,55 %s" %s'%(filePath, text, text, filePath)
                 subprocess.call(command, shell=True)
                 self.progressBar.setValue(j+1)
                 qApp.processEvents()
