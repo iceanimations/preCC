@@ -78,6 +78,7 @@ class Compositor(Form, Base):
         
     def start(self):
         try:
+            self.startButton.setEnabled(False)
             for directory in os.listdir(homeDir):
                 path = osp.join(homeDir, directory)
                 if osp.isdir(path):
@@ -99,8 +100,11 @@ class Compositor(Form, Base):
                 compDir = osp.join(homeDir, 'comps')
                 if not osp.exists(compDir):
                     os.mkdir(compDir)
+                temp = False
+                if self.isMoveFile():
+                    temp = self.getShotsPath(msg=False)
                 with open(osp.join(compositingInfo, 'info.txt'), 'w') as f:
-                    f.write(str([self.getShotsPath(msg=False), homeDir] + shots))
+                    f.write(str([temp, homeDir] + shots))
                 
                 # create the comps and render them
                 os.chdir(nukePath)
@@ -118,33 +122,33 @@ class Compositor(Form, Base):
                                                btns=QMessageBox.Yes|QMessageBox.No)
                         if btn == QMessageBox.No:
                             return
-                # add black frames for missing frames
-                self.setStatus('Finding missing frames')
-                for i, shot in enumerate(shots):
-                    self.setSubStatus('Finding for %s (%s of %s)'%(shot, i+1, len(shots)))
-                    shotPath = osp.join(renderPath, shot)
-                    if not osp.exists(shotPath): continue
-                    files = os.listdir(shotPath)
-                    if not files: continue
-                    fn = set([int(x.split('.')[1]) for x in files]) # frame numbers
-                    mf = list(set(range(min(fn), max(fn) + 1)).difference(fn)) # missing frames
-                    if not mf: continue
-                    bip = osp.join(shotPath, 'black.jpg')
-                    imgSize = None
-                    for ph in files:
-                        imgSize = iutil.get_image_size(osp.join(shotPath, ph))
-                        if not imgSize: continue
-                        else: break
-                    if not imgSize: continue
-                    for j in mf:
-                        shutil.copy(r"R:\Pipe_Repo\Users\Qurban\extras\black.jpg", shotPath)
-                        newName = osp.join(shotPath, files[0].split('.')[0] +'.'+ str(j).zfill(5) + '.jpg')
-                        os.rename(bip, newName)
-                        if imgSize != (1920, 1080):
-                            iutil.resizeImage(newName, str(str(imgSize[0])) +'x'+ str(imgSize[1]))
-                self.setStatus('Adding shot and frame numbers to the renders')
-                self.addShotNumbers(renderPath, shots)
                 if self.isMoveFile():
+                    # add black frames for missing frames
+                    self.setStatus('Finding missing frames')
+                    for i, shot in enumerate(shots):
+                        self.setSubStatus('Finding for %s (%s of %s)'%(shot, i+1, len(shots)))
+                        shotPath = osp.join(renderPath, shot)
+                        if not osp.exists(shotPath): continue
+                        files = os.listdir(shotPath)
+                        if not files: continue
+                        fn = set([int(x.split('.')[1]) for x in files]) # frame numbers
+                        mf = list(set(range(min(fn), max(fn) + 1)).difference(fn)) # missing frames
+                        if not mf: continue
+                        bip = osp.join(shotPath, 'black.jpg')
+                        imgSize = None
+                        for ph in files:
+                            imgSize = iutil.get_image_size(osp.join(shotPath, ph))
+                            if not imgSize: continue
+                            else: break
+                        if not imgSize: continue
+                        for j in mf:
+                            shutil.copy(r"R:\Pipe_Repo\Users\Qurban\extras\black.jpg", shotPath)
+                            newName = osp.join(shotPath, files[0].split('.')[0] +'.'+ str(j).zfill(5) + '.jpg')
+                            os.rename(bip, newName)
+                            if imgSize != (1920, 1080):
+                                iutil.resizeImage(newName, str(str(imgSize[0])) +'x'+ str(imgSize[1]))
+                    self.setStatus('Adding shot and frame numbers to the renders')
+                    self.addShotNumbers(renderPath, shots)
                     allRendersPath = osp.join(osp.join(renderPath, 'all'))
                     if not osp.exists(allRendersPath):
                         os.mkdir(allRendersPath)
@@ -186,6 +190,7 @@ class Compositor(Form, Base):
             self.progressBar.hide()
             self.setStatus('')
             self.setSubStatus('')
+            self.startButton.setEnabled(True)
             
     def addShotNumbers(self, renderPath, shots):
         shotLen = len(shots)
@@ -203,7 +208,8 @@ class Compositor(Form, Base):
                 filePath = osp.normpath(osp.join(shotPath, ph))
                 text = sh + '[' + frame + ']'
                 command = "\"C:\\Program Files\\ImageMagick-6.9.1-Q8\\convert.exe\""
-                if not osp.exists(command):
+                print osp.exists(command.strip("\""))
+                if not osp.exists(command.strip("\"")):
                     command = 'R:\\Pipe_Repo\\Users\\Qurban\\applications\\ImageMagick\\convert.exe'
                 command += ' %s -pointsize 30 -channel RGBA -fill black -stroke white -draw "text 20,55 %s" %s'%(filePath, text, filePath)
                 subprocess.call(command, shell=True)
@@ -277,12 +283,14 @@ class Compositor(Form, Base):
                 if not osp.exists(layerDirLocal):
                     os.mkdir(layerDirLocal)
                 layerDir = osp.join(cameraDir, layer)
+                if osp.isfile(layerDir): continue
                 for aov in os.listdir(layerDir):
                     if aov.lower().endswith('beauty'):
                         aovDirLocal = osp.join(layerDirLocal, aov)
                         if not osp.exists(aovDirLocal):
                             os.mkdir(aovDirLocal)
                         aovDir = osp.join(layerDir, aov)
+                        if osp.isfile(aovDir): continue
                         renders = os.listdir(aovDir)
                         if renders:
                             goodRenders = list(self.getGoodFiles(renders))
