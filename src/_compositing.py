@@ -148,7 +148,11 @@ class Compositor(Form, Base):
                     allRendersPath = osp.join(osp.join(renderPath, 'all'))
                     if not osp.exists(allRendersPath):
                         os.mkdir(allRendersPath)
-                    movPath = self.createMovFile(allRendersPath)
+                    movPath, overlaping = self.createMovFile(allRendersPath)
+                    if overlaping:
+                        self.showMessage(msg='Some errors occurred while creating .mov file, it might be due to overlaping frames',
+                                         details=qutil.dictionaryToDetails(overlaping),
+                                         icon=QMessageBox.Information)
                     if osp.exists(movPath):
                         movPath = movPath.replace('\\', '/')
                         self.showMessage(msg='<a href=\"%s\">%s</a>'%(movPath, movPath))
@@ -199,7 +203,7 @@ class Compositor(Form, Base):
                 filePath = osp.normpath(osp.join(shotPath, ph))
                 text = sh + '[' + frame + ']'
                 command = 'R:\\Pipe_Repo\\Users\\Qurban\\applications\\ImageMagick\\convert.exe'
-                command += ' %s -pointsize 30 -draw "text 25,60 %s" -channel RGBA -fill darkred -stroke yellow -draw "text 20,55 %s" %s'%(filePath, text, text, filePath)
+                command += ' %s -pointsize 30 -channel RGBA -fill black -stroke white -draw "text 20,55 %s" %s'%(filePath, text, filePath)
                 subprocess.call(command, shell=True)
                 self.progressBar.setValue(j+1)
                 qApp.processEvents()
@@ -212,6 +216,7 @@ class Compositor(Form, Base):
         return self.createMovButton.isChecked()
     
     def createMovFile(self, allRendersPath):
+        overlaping = {}
         rendersPath = osp.dirname(allRendersPath)
         shots = os.listdir(rendersPath)
         shots.remove('all')
@@ -225,8 +230,11 @@ class Compositor(Form, Base):
             shotPath = osp.join(rendersPath, shot)
             files = os.listdir(shotPath)
             for ph in files:
-                shutil.copy(osp.join(shotPath, ph), allRendersPath)
-                os.rename(osp.join(allRendersPath, ph), osp.join(allRendersPath, re.sub('SH\d+\.', seqName+'.', ph)))
+                try:
+                    shutil.copy(osp.join(shotPath, ph), allRendersPath)
+                    os.rename(osp.join(allRendersPath, ph), osp.join(allRendersPath, re.sub('SH\d+\.', seqName+'.', ph)))
+                except Exception as ex:
+                    overlaping[ph] = (str(ex))
             self.progressBar.setValue(i+1)
             qApp.processEvents()
         self.progressBar.setValue(0)
@@ -243,7 +251,7 @@ class Compositor(Form, Base):
         subprocess.call("R:\\Pipe_Repo\\Users\\Qurban\\applications\\ffmpeg\\bin\\ffmpeg.exe -i "+ tempPath + ".%05d.jpg -c:v libx264 -r 30 -pix_fmt yuv420p "+ movPath)
         self.setStatus('')
         self.setSubStatus('')
-        return movPath
+        return movPath, overlaping
         
     def copyRenders(self, shots):
         shotsDir = self.getShotsPath()
