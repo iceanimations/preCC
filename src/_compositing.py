@@ -208,7 +208,6 @@ class Compositor(Form, Base):
                 filePath = osp.normpath(osp.join(shotPath, ph))
                 text = sh + '[' + frame + ']'
                 command = "\"C:\\Program Files\\ImageMagick-6.9.1-Q8\\convert.exe\""
-                print osp.exists(command.strip("\""))
                 if not osp.exists(command.strip("\"")):
                     command = 'R:\\Pipe_Repo\\Users\\Qurban\\applications\\ImageMagick\\convert.exe'
                 command += ' %s -pointsize 30 -channel RGBA -fill black -stroke white -draw "text 20,55 %s" %s'%(filePath, text, filePath)
@@ -238,11 +237,12 @@ class Compositor(Form, Base):
             shotPath = osp.join(rendersPath, shot)
             files = os.listdir(shotPath)
             for ph in files:
+                shutil.copy(osp.join(shotPath, ph), allRendersPath)
                 try:
-                    shutil.copy(osp.join(shotPath, ph), allRendersPath)
                     os.rename(osp.join(allRendersPath, ph), osp.join(allRendersPath, re.sub('SH\d+\.', seqName+'.', ph)))
                 except Exception as ex:
                     overlaping[ph] = (str(ex))
+                    os.remove(osp.join(allRendersPath, ph))
             self.progressBar.setValue(i+1)
             qApp.processEvents()
         self.progressBar.setValue(0)
