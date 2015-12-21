@@ -256,7 +256,7 @@ class Compositor(Form, Base):
         movPath = osp.join(allRendersPath, movName)
         tempPath = osp.join(allRendersPath, seqName)
         self.setSubStatus('Creating %s'%osp.basename(movPath))
-        subprocess.call("R:\\Pipe_Repo\\Users\\Qurban\\applications\\ffmpeg\\bin\\ffmpeg.exe -i "+ tempPath + ".%05d.jpg -c:v libx264 -r 30 -pix_fmt yuv420p "+ movPath)
+        subprocess.call("R:\\Pipe_Repo\\Users\\Qurban\\applications\\ffmpeg\\bin\\ffmpeg.exe -i "+ tempPath + ".%05d.jpg -c:v libx264 -r 25 -pix_fmt yuv420p "+ movPath)
         self.setStatus('')
         self.setSubStatus('')
         return movPath, overlaping
