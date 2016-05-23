@@ -83,7 +83,7 @@ class Compositor(Form, Base):
                 path = osp.join(homeDir, directory)
                 if osp.isdir(path):
                     shutil.rmtree(path, onerror=iutil.onerror)
-
+    
             shots = self.shotsBox.getSelectedItems()
             if not shots:
                 shots = self.shotsBox.getItems()
@@ -95,7 +95,7 @@ class Compositor(Form, Base):
                     frames = self.copyRenders(shots)
                 self.progressBar.setValue(0)
                 qApp.processEvents()
-
+    
                 self.setStatus('Creating and rendering comps')
                 compDir = osp.join(homeDir, 'comps')
                 if not osp.exists(compDir):
@@ -107,9 +107,8 @@ class Compositor(Form, Base):
                     f.write(str([temp, homeDir] + shots))
                 
                 # create the comps and render them
-                os.chdir(nukePath)
-                subprocess.call(osp.join(nukePath, 'python') + ' ' + compositingFie)
-
+                subprocess.call('\"' + osp.join(nukePath, 'python') + '\" ' + compositingFie, shell=True)
+    
                 renderPath = osp.join(compDir, 'renders')
                 
                 with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
@@ -185,7 +184,7 @@ class Compositor(Form, Base):
         except Exception as ex:
             self.showMessage(msg=str(ex),
                              icon=QMessageBox.Critical)
-
+ 
         finally:
             self.progressBar.hide()
             self.setStatus('')
@@ -256,7 +255,7 @@ class Compositor(Form, Base):
         movPath = osp.join(allRendersPath, movName)
         tempPath = osp.join(allRendersPath, seqName)
         self.setSubStatus('Creating %s'%osp.basename(movPath))
-        subprocess.call("R:\\Pipe_Repo\\Users\\Qurban\\applications\\ffmpeg\\bin\\ffmpeg.exe -i "+ tempPath + ".%05d.jpg -c:v libx264 -r 25 -pix_fmt yuv420p "+ movPath)
+        subprocess.call("R:\\Pipe_Repo\\Users\\Qurban\\applications\\ffmpeg\\bin\\ffmpeg.exe -i "+ tempPath + ".%05d.jpg -c:v prores -r 25 -pix_fmt yuv420p "+ movPath, shell=True)
         self.setStatus('')
         self.setSubStatus('')
         return movPath, overlaping
