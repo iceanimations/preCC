@@ -22,6 +22,8 @@ import subprocess
 import sys
 import pprint
 import iutil
+import time
+
 reload(iutil)
 
 title = 'PreCC'
@@ -78,6 +80,7 @@ class Compositor(Form, Base):
         
     def start(self):
         try:
+            t1 = time.time()
             self.startButton.setEnabled(False)
             for directory in os.listdir(homeDir):
                 path = osp.join(homeDir, directory)
@@ -110,7 +113,7 @@ class Compositor(Form, Base):
                 subprocess.call('\"' + osp.join(nukePath, 'python') + '\" ' + compositingFie, shell=True)
     
                 renderPath = osp.join(compDir, 'renders')
-                
+                tt = time.time()
                 with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
                     errors = eval(f.read())
                     if errors:
@@ -121,6 +124,7 @@ class Compositor(Form, Base):
                                                btns=QMessageBox.Yes|QMessageBox.No)
                         if btn == QMessageBox.No:
                             return
+                ttt = time.time() - tt
                 if self.isMoveFile():
                     # add black frames for missing frames
                     self.setStatus('Finding missing frames')
@@ -152,13 +156,17 @@ class Compositor(Form, Base):
                     if not osp.exists(allRendersPath):
                         os.mkdir(allRendersPath)
                     movPath, overlaping = self.createMovFile(allRendersPath)
+                    totalTime = int(time.time() - (t1 + ttt))
                     if overlaping:
                         self.showMessage(msg='Some errors occurred while creating .mov file, it might be due to overlaping frames',
                                          details=qutil.dictionaryToDetails(overlaping),
                                          icon=QMessageBox.Information)
                     if osp.exists(movPath):
+                        arg = '<b>%s</b> Second(s)'%str(totalTime)
+                        if totalTime > 60:
+                            arg = '<b>%s</b> Minute(s) <b>%s</b> Second(s)'%(str(totalTime/60), str(totalTime%60))
                         movPath = movPath.replace('\\', '/')
-                        self.showMessage(msg='<a href=\"%s\">%s</a>'%(movPath, movPath))
+                        self.showMessage(msg='<a href=\"%s\">%s</a><br>%s'%(movPath, movPath, 'Total Time: %s'%arg))
                     else:
                         self.showMessage(msg='Could not create .mov file', icon=QMessageBox.Critical)
                 else:
