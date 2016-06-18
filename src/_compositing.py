@@ -10,8 +10,6 @@ from PyQt4 import uic
 from PyQt4.QtGui import QMessageBox, QFileDialog, qApp
 import os.path as osp
 import msgBox
-import qutil
-reload(qutil)
 import os
 import re
 import cui
@@ -32,7 +30,7 @@ homeDir = osp.join(osp.expanduser('~'), 'preCC')
 if not osp.exists(homeDir):
     os.mkdir(homeDir)
 
-rootPath = qutil.dirname(__file__, depth=2)
+rootPath = iutil.dirname(__file__, depth=2)
 uiPath = osp.join(rootPath, 'ui')
 iconPath = osp.join(rootPath, 'icons')
 renderShotBackend = 'R:\\Python_Scripts\\plugins\\renderShots\\src\\backend'
@@ -120,7 +118,7 @@ class Compositor(Form, Base):
                         btn = self.showMessage(msg='Errors occurred while creating and rendering comps',
                                                ques='Do you want to continue?',
                                                icon=QMessageBox.Critical,
-                                               details=qutil.dictionaryToDetails(errors),
+                                               details=iutil.dictionaryToDetails(errors),
                                                btns=QMessageBox.Yes|QMessageBox.No)
                         if btn == QMessageBox.No:
                             return
