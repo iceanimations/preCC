@@ -157,7 +157,7 @@ class Compositor(Form, Base):
                     totalTime = int(time.time() - (t1 + ttt))
                     if overlaping:
                         self.showMessage(msg='Some errors occurred while creating .mov file, it might be due to overlaping frames',
-                                         details=qutil.dictionaryToDetails(overlaping),
+                                         details=iutil.dictionaryToDetails(overlaping),
                                          icon=QMessageBox.Information)
                     if osp.exists(movPath):
                         arg = '<b>%s</b> Second(s)'%str(totalTime)
