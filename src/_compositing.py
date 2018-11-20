@@ -35,18 +35,18 @@ uiPath = osp.join(rootPath, 'ui')
 iconPath = osp.join(rootPath, 'icons')
 renderShotBackend = 'R:\\Python_Scripts\\plugins\\renderShots\\src\\backend'
 if os.environ['USERNAME'] == 'qurban.ali':
-    renderShotBackend = 'D:\\My\\Tasks\\workSpace\\renderShots\\src\\backend'
+    renderShotBackend = 'D:\\projects\\pipeline\\renderShots\\src\\backend'
 sys.path.insert(0, renderShotBackend)
 compositingFie = osp.join(renderShotBackend, 'compositing.py')
 
 nukePath = r'C:\Program Files\Nuke8.0v5'
 if not osp.exists(nukePath):
     nukePath = r'C:\Program Files\Nuke9.0v4'
-    
+
 compositingInfo = osp.join(osp.expanduser('~'), 'compositing')
 if not osp.exists(compositingInfo):
     os.mkdir(compositingInfo)
-    
+
 def executeCommand(command):
     pass
 
@@ -58,24 +58,24 @@ class Compositor(Form, Base):
     def __init__(self, parent=None, data=None):
         super(Compositor, self).__init__(parent)
         self.setupUi(self)
-        
+
         self.setWindowTitle(title)
         self.shotsBox = cui.MultiSelectComboBox(self, '--Select Shots--')
         self.pathLayout.addWidget(self.shotsBox)
-        
+
         self.lastPath = ''
-        
+
         self.startButton.clicked.connect(self.start)
         self.browseButton.clicked.connect(self.setPath)
         self.shotsPathBox.textChanged.connect(self.populateShots)
-        
+
         if not osp.exists(nukePath):
             self.showMessage(msg='It seems like Nuke is not installed, can not create comp')
             return
         self.progressBar.hide()
-        
+
         appUsageApp.updateDatabase('PreCC')
-        
+
     def start(self):
         try:
             t1 = time.time()
@@ -84,7 +84,7 @@ class Compositor(Form, Base):
                 path = osp.join(homeDir, directory)
                 if osp.isdir(path):
                     shutil.rmtree(path, onerror=iutil.onerror)
-    
+
             shots = self.shotsBox.getSelectedItems()
             if not shots:
                 shots = self.shotsBox.getItems()
@@ -96,7 +96,7 @@ class Compositor(Form, Base):
                     frames = self.copyRenders(shots)
                 self.progressBar.setValue(0)
                 qApp.processEvents()
-    
+
                 self.setStatus('Creating and rendering comps')
                 compDir = osp.join(homeDir, 'comps')
                 if not osp.exists(compDir):
@@ -106,10 +106,10 @@ class Compositor(Form, Base):
                     temp = self.getShotsPath(msg=False)
                 with open(osp.join(compositingInfo, 'info.txt'), 'w') as f:
                     f.write(str([temp, homeDir] + shots))
-                
+
                 # create the comps and render them
                 subprocess.call('\"' + osp.join(nukePath, 'python') + '\" ' + compositingFie, shell=True)
-    
+
                 renderPath = osp.join(compDir, 'renders')
                 tt = time.time()
                 with open(osp.join(osp.expanduser('~'), 'compositing', 'errors.txt')) as f:
@@ -176,7 +176,7 @@ class Compositor(Form, Base):
                     cm.collageDir = osp.join(homeDir, 'collage')
                     if not osp.exists(cm.collageDir):
                         os.mkdir(cm.collageDir)
-        
+
                     cMaker = cm.CollageMaker()
                     numShots = len(shots)
                     for i, shot in enumerate(shots):
@@ -190,13 +190,13 @@ class Compositor(Form, Base):
         except Exception as ex:
             self.showMessage(msg=str(ex),
                              icon=QMessageBox.Critical)
- 
+
         finally:
             self.progressBar.hide()
             self.setStatus('')
             self.setSubStatus('')
             self.startButton.setEnabled(True)
-            
+
     def addShotNumbers(self, renderPath, shots):
         shotLen = len(shots)
         for i, shot in enumerate(shots):
@@ -222,11 +222,11 @@ class Compositor(Form, Base):
         self.setStatus('')
         self.setSubStatus('')
         self.progressBar.setValue(0)
-                
+
 
     def isMoveFile(self):
         return self.createMovButton.isChecked()
-    
+
     def createMovFile(self, allRendersPath):
         overlaping = {}
         rendersPath = osp.dirname(allRendersPath)
@@ -265,7 +265,7 @@ class Compositor(Form, Base):
         self.setStatus('')
         self.setSubStatus('')
         return movPath, overlaping
-        
+
     def copyRenders(self, shots):
         shotsDir = self.getShotsPath()
         numShots = len(shots)
@@ -333,7 +333,7 @@ class Compositor(Form, Base):
                 yield phile
                 break
         yield renders[-1]
-        
+
     def setStatus(self, msg):
         self.statusLabel.setText(msg)
         qApp.processEvents()
@@ -341,7 +341,7 @@ class Compositor(Form, Base):
     def setSubStatus(self, msg):
         self.subStatusLabel.setText(msg)
         qApp.processEvents()
-    
+
     def setPath(self):
         filename = QFileDialog.getExistingDirectory(self, title, self.lastPath,
                                                     QFileDialog.ShowDirsOnly | QFileDialog.DontUseNativeDialog)
@@ -351,7 +351,7 @@ class Compositor(Form, Base):
 
     def showMessage(self, **kwargs):
         return cui.showMessage(self, title=title, **kwargs)
-            
+
     def getShotsPath(self, msg=True):
         path = self.shotsPathBox.text()
         if (not path or not osp.exists(path)) and msg:
@@ -359,13 +359,13 @@ class Compositor(Form, Base):
                              icon=QMessageBox.Information)
             path = ''
         return osp.normpath(path) if path else path
-    
+
     def populateShots(self):
         path = self.getShotsPath(msg=False)
         if path:
             shots = [shot for shot in os.listdir(path)]
             self.shotsBox.addItems(shots)
-    
+
     def closeEvent(self, event):
         self.deleteLater()
         event.accept()
